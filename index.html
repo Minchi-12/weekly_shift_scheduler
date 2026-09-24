@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vardiya Planlayıcı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#171B24;
+    --paper:#FAFAF7;
+    --panel:#FFFFFF;
+    --line:#E4E1D8;
+    --muted:#8A8677;
+    --accent:#C4632B;
+    --accent-soft:#F3E3D3;
+    --s1:#3B6E8C;   /* shift1 - morning, slate blue */
+    --s1-soft:#E4EDF1;
+    --s2:#4C8B6E;   /* shift2 - afternoon, green */
+    --s2-soft:#E5EFE9;
+    --s3:#8B6B4C;   /* shift3 - dusk, amber-brown */
+    --s3-soft:#F1E9E0;
+    --s4:#6B4C8B;   /* shift4 - night, violet */
+    --s4-soft:#EAE4F1;
+    --mgr:#C4632B;  /* manager - accent */
+    --mgr-soft:#F3E3D3;
+    --want:#4C8B6E;
+    --any:#8A8677;
+    --no:#B5544A;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.disp{
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .app{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 20px 80px;
+  }
+  header.top{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:10px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;
+  }
+  header.top .title{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  header.top h1{
+    font-size:26px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.02em;
+  }
+  header.top .sub{
+    color:var(--muted);
+    font-size:13px;
+  }
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab-btn{
+    appearance:none;
+    border:none;
+    background:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    color:var(--muted);
+    padding:10px 16px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    margin-bottom:-1px;
+    transition:color .15s;
+  }
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{
+    color:var(--ink);
+    border-bottom-color:var(--accent);
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+ 
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:18px;
+  }
+  .card h2{
+    font-size:16px;
+    margin:0 0 4px;
+  }
+  .card .hint{
+    color:var(--muted);
+    font-size:12.5px;
+    margin:0 0 16px;
+  }
+ 
+  label{
+    font-size:12px;
+    font-weight:600;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    display:block;
+    margin-bottom:5px;
+  }
+  input[type=text], input[type=number]{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  input:focus, select:focus, button:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .row{display:flex; gap:14px; flex-wrap:wrap;}
+  .row > div{flex:1; min-width:140px;}
+ 
+  .gender-pick{display:flex; gap:8px;}
+  .gender-pick button{
+    flex:1;
+    padding:9px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    border-radius:7px;
+    cursor:pointer;
+    font-weight:600;
+    font-size:13px;
+  }
+  .gender-pick button.sel-M{background:var(--s1-soft); border-color:var(--s1); color:var(--s1);}
+  .gender-pick button.sel-K{background:var(--s4-soft); border-color:var(--s4); color:var(--s4);}
+ 
+  table.prefgrid{
+    border-collapse:collapse;
+    width:100%;
+    font-size:12.5px;
+    margin-top:14px;
+  }
+  table.prefgrid th, table.prefgrid td{
+    border:1px solid var(--line);
+    padding:0;
+    text-align:center;
+  }
+  table.prefgrid th{
+    background:var(--paper);
+    font-weight:600;
+    padding:7px 4px;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  table.prefgrid td.shiftlabel{
+    text-align:left;
+    padding:8px 10px;
+    font-weight:600;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  .pref-cell{
+    width:100%;
+    height:38px;
+    border:none;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:600;
+    font-family:'Inter',sans-serif;
+  }
+  .pref-want{background:#DDEEE3; color:var(--want);}
+  .pref-any{background:#EFEEE8; color:var(--any);}
+  .pref-no{background:#F5DEDA; color:var(--no);}
+ 
+  .btn{
+    appearance:none;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    padding:9px 16px;
+    border-radius:7px;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .btn:hover{opacity:.88;}
+  .btn.secondary{
+    background:transparent;
+    color:var(--ink);
+    border-color:var(--line);
+  }
+  .btn.danger{
+    background:transparent;
+    color:var(--no);
+    border-color:var(--no);
+  }
+  .btn.accent{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .btn.small{padding:5px 10px; font-size:12px;}
+ 
+  .emp-list{display:flex; flex-direction:column; gap:8px;}
+  .emp-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 14px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--paper);
+  }
+  .emp-row .who{display:flex; align-items:center; gap:10px;}
+  .badge{
+    font-size:10.5px;
+    font-weight:700;
+    padding:3px 7px;
+    border-radius:5px;
+    text-transform:uppercase;
+  }
+  .badge-M{background:var(--s1-soft); color:var(--s1);}
+  .badge-K{background:var(--s4-soft); color:var(--s4);}
+  .emp-row .name{font-weight:600; font-size:14px;}
+  .emp-row .meta{font-size:12px; color:var(--muted);}
+  .emp-row .actions{display:flex; gap:6px;}
+ 
+  .empty{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--muted);
+    font-size:13.5px;
+  }
+ 
+  /* Manager day picker */
+  .mgr-days{display:flex; flex-direction:column; gap:8px;}
+  .mgr-day{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--paper);
+    flex-wrap:wrap;
+  }
+  .mgr-day .dayname{font-weight:700; font-size:13px; width:100px; flex-shrink:0;}
+  .mgr-opt-group{display:flex; gap:6px; flex-wrap:wrap; flex:1;}
+  .mgr-opt-btn{
+    border:1px solid var(--line);
+    background:var(--panel);
+    padding:7px 12px;
+    border-radius:7px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+  }
+  .mgr-opt-btn.off-sel{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  .mgr-opt-btn.sel-block1{background:var(--s1-soft); border-color:var(--s1); color:var(--s1);}
+  .mgr-opt-btn.sel-block2{background:var(--s2-soft); border-color:var(--s2); color:var(--s2);}
+  .mgr-opt-btn.sel-block4{background:var(--s4-soft); border-color:var(--s4); color:var(--s4);}
+  select{
+    padding:8px 9px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    background:var(--panel);
+    color:var(--ink);
+  }
+ 
+  /* Result table */
+  .result-wrap{overflow-x:auto;}
+  table.resultgrid{
+    border-collapse:collapse;
+    width:100%;
+    min-width:820px;
+  }
+  table.resultgrid th, table.resultgrid td{
+    border:1px solid var(--line);
+    padding:8px;
+    vertical-align:top;
+  }
+  table.resultgrid th{
+    background:var(--ink);
+    color:var(--paper);
+    font-size:12px;
+    font-weight:600;
+    padding:10px 8px;
+  }
+  table.resultgrid td.rowlabel{
+    font-weight:700;
+    font-size:12.5px;
+    white-space:nowrap;
+    width:150px;
+  }
+  .cell-shift1 td.rowlabel{background:var(--s1-soft); color:var(--s1);}
+  .cell-shift2 td.rowlabel{background:var(--s2-soft); color:var(--s2);}
+  .cell-shift3 td.rowlabel{background:var(--s3-soft); color:var(--s3);}
+  .cell-shift4 td.rowlabel{background:var(--s4-soft); color:var(--s4);}
+ 
+  .name-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:3px 7px;
+    font-size:11.5px;
+    font-weight:600;
+    margin:2px 3px 2px 0;
+    cursor:pointer;
+  }
+  .name-chip.mgr{border-color:var(--accent); color:var(--accent);}
+  .name-chip.male::before{content:'♂'; opacity:.5; margin-right:1px;}
+  .name-chip.female::before{content:'♀'; opacity:.5; margin-right:1px;}
+  .cell-empty{color:var(--muted); font-size:11px; font-style:italic;}
+  .add-slot{
+    display:inline-block;
+    font-size:11px;
+    color:var(--muted);
+    border:1px dashed var(--line);
+    border-radius:6px;
+    padding:3px 8px;
+    cursor:pointer;
+    margin-top:2px;
+  }
+  .add-slot:hover{border-color:var(--accent); color:var(--accent);}
+ 
+  .summary-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+    gap:10px;
+    margin-top:16px;
+  }
+  .sum-card{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    background:var(--paper);
+  }
+  .sum-card .name{font-weight:700; font-size:13.5px; margin-bottom:2px;}
+  .sum-card .stat{font-size:12px; color:var(--muted);}
+  .sum-card.under{border-color:var(--no); background:#FCEEEC;}
+  .sum-card.over{border-color:#C99A3B; background:#FBF3E1;}
+  .sum-card.ok{border-color:var(--want); background:#EDF6F0;}
+ 
+  .warn-box{
+    border:1px solid var(--no);
+    background:#FCEEEC;
+    color:#8C332A;
+    border-radius:8px;
+    padding:10px 14px;
+    font-size:12.5px;
+    margin-bottom:14px;
+  }
+  .warn-box ul{margin:6px 0 0; padding-left:18px;}
+ 
+  .modal-backdrop{
+    position:fixed; inset:0;
+    background:rgba(23,27,36,.5);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50;
+  }
+  .modal{
+    background:var(--panel);
+    border-radius:10px;
+    padding:20px;
+    width:280px;
+    max-height:70vh;
+    overflow-y:auto;
+  }
+  .modal h3{margin:0 0 12px; font-size:14px;}
+  .modal-opt{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--paper);
+    margin-bottom:6px;
+    cursor:pointer;
+    font-size:13px;
+    font-family:'Inter',sans-serif;
+  }
+  .modal-opt:hover{border-color:var(--accent);}
+  .modal-opt.remove{color:var(--no); border-color:var(--no);}
+ 
+  footer.actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+    flex-wrap:wrap;
+  }
+  .toast{
+    position:fixed;
+    bottom:20px; left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:var(--paper);
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    z-index:100;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s;
+  }
+  .toast.show{opacity:1;}
+ 
+  @media (max-width:640px){
+    .mgr-day{grid-template-columns:1fr; gap:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title">
+      <h1>🗓️ Vardiya Planlayıcı</h1>
+      <span class="sub">haftalık program oluşturucu</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <button class="btn secondary small" onclick="startNewWeek()">🔄 Yeni Haftaya Geç</button>
+      <div style="font-size:12px;color:var(--muted);" id="saveIndicator"></div>
+    </div>
+  </header>
+ 
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="employees">Çalışanlar</button>
+    <button class="tab-btn" data-tab="manager">Müdür Programı</button>
+    <button class="tab-btn" data-tab="rules">Kurallar</button>
+    <button class="tab-btn" data-tab="result">Sonuç</button>
+  </div>
+ 
+  <!-- EMPLOYEES TAB -->
+  <div class="panel active" id="panel-employees">
+    <div class="card" style="border-color:var(--accent);">
+      <h2>📄 Haftalık Google Sheet Yükle</h2>
+      <p class="hint">Çalışanların doldurduğu haftalık müsaitlik dosyasını (.xlsx, indirilmiş Google Sheet) buradan yükle. Her hafta yeni dosyayı yüklediğinde çalışan listesi ve tercihler otomatik güncellenir; kurallar ve senin programın etkilenmez.</p>
+      <input type="file" id="sheetFile" accept=".xlsx,.xls" style="display:none" onchange="handleSheetUpload(event)">
+      <footer class="actions" style="margin-top:0;">
+        <button class="btn accent" onclick="document.getElementById('sheetFile').click()">.xlsx Dosyası Seç ve İçe Aktar</button>
+      </footer>
+      <div id="importSummary" style="margin-top:12px; font-size:12.5px; color:var(--muted);"></div>
+    </div>
+ 
+    <div class="card">
+      <h2 id="formTitle">Yeni Çalışan Ekle</h2>
+      <p class="hint">Sheet'ten otomatik gelmeyen ya da elle düzeltmek istediğin bir çalışan için bu formu kullan.</p>
+ 
+      <div class="row">
+        <div>
+          <label>İsim</label>
+          <input type="text" id="empName" placeholder="örn. Zeynep">
+        </div>
+        <div>
+          <label>Cinsiyet</label>
+          <div class="gender-pick">
+            <button type="button" id="genM" onclick="setGender('M')">Erkek</button>
+            <button type="button" id="genK" onclick="setGender('K')">Kız</button>
+          </div>
+        </div>
+        <div>
+          <label>Min. shift</label>
+          <input type="number" id="empMin" min="0" max="28" value="4">
+        </div>
+        <div>
+          <label>Maks. shift</label>
+          <input type="number" id="empMax" min="0" max="28" value="4">
+        </div>
+      </div>
+      <p class="hint" style="margin-top:8px;">Net sayı istiyorsan Min = Maks yap. Aralık istiyorsan (örn. 3-4) farklı gir.</p>
+ 
+      <table class="prefgrid" id="prefGrid"></table>
+ 
+      <div style="margin-top:16px;">
+        <label>Aynı Anda Çalışamayacağı Kişiler</label>
+        <p class="hint" style="margin:0 0 8px;">Seçilen kişilerle bu çalışan, saatleri çakışan hiçbir vardiyada birlikte planlanmaz.</p>
+        <div id="conflictPicker" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </div>
+ 
+      <footer class="actions">
+        <button class="btn accent" onclick="saveEmployee()" id="saveEmpBtn">Çalışanı Kaydet</button>
+        <button class="btn secondary" onclick="resetForm()">Formu Temizle</button>
+      </footer>
+    </div>
+ 
+    <div class="card">
+      <h2>Çalışan Listesi (<span id="empCount">0</span>)</h2>
+      <div class="emp-list" id="empList"></div>
+    </div>
+  </div>
+ 
+  <!-- MANAGER TAB -->
+  <div class="panel" id="panel-manager">
+    <div class="card">
+      <h2>Senin Bu Haftaki Programın</h2>
+      <p class="hint">Her gün için 3 sabit bloktan birini seç (ya da o gün çalışma). Hangi bloğu seçersen, o günün ilgili shift'ine dahil olursun — gerekli kişi sayısına ve cinsiyet şartına (erkek olarak) sen de sayılırsın. 09:00–16:00 seçersen Shift 2'nin gerekli kişi sayısı o gün için 1'e düşer; 16:00–24:00 seçersen Shift 3'ün gerekli kişi sayısı o gün için 0 olur.</p>
+      <div class="mgr-days" id="mgrDays"></div>
+      <p class="hint" id="mgrDayCount" style="margin-top:10px;"></p>
+    </div>
+  </div>
+ 
+  <!-- RULES TAB -->
+  <div class="panel" id="panel-rules">
+    <div class="card">
+      <h2>Vardiya Kuralları</h2>
+      <p class="hint">Kişi sayısı ve cinsiyet şartını buradan düzenleyebilirsin. Bir vardiyada en fazla 3 kişi olabilir — "Gerekli kişi" bu sayıyı geçemez, "+ ekle" ile manuel eklerken de bu sınır uygulanır.</p>
+      <div id="rulesEditor"></div>
+      <footer class="actions">
+        <button class="btn accent" onclick="saveRules()">Kuralları Kaydet</button>
+      </footer>
+    </div>
+ 
+    <div class="card">
+      <h2>🧹 Temizlik Günü</h2>
+      <p class="hint">Aktif edersen, seçtiğin gün için açılış (Shift 1) planlanmaz; onun yerine belirlediğin sayıda personel bir temizlik ekibi olarak o günün açılış saatlerine atanır. Shift 2, 3 ve 4 o gün de tamamen normal şekilde planlanmaya devam eder.</p>
+      <div class="row" style="align-items:flex-end;">
+        <div style="flex:0 0 auto; min-width:110px;">
+          <label>Durum</label>
+          <button type="button" class="mgr-opt-btn" id="cleaningToggleBtn" onclick="toggleCleaning()"></button>
+        </div>
+        <div>
+          <label>Gün</label>
+          <select id="cleaningDaySelect" onchange="updateCleaningField('day', this.value)"></select>
+        </div>
+        <div>
+          <label>Kişi sayısı</label>
+          <input type="number" id="cleaningCountInput" min="1" max="20" value="3" onchange="updateCleaningField('count', Math.max(1, parseInt(this.value)||1))">
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- RESULT TAB -->
+  <div class="panel" id="panel-result">
+    <div class="card">
+      <h2>Haftalık Program</h2>
+      <p class="hint">Otomatik oluştur, sonra istersen bir isme tıklayıp değiştir. Program, boş slot bırakmamayı her zaman önceliklendirir; eşit koşullarda ise bir çalışanın haftalık shift'lerini açılış/ara/kapanış arasında dengeli dağıtmaya çalışır.</p>
+      <footer class="actions" style="margin-top:0; margin-bottom:16px;">
+        <button class="btn accent" onclick="generateSchedule()">Programı Oluştur</button>
+        <button class="btn secondary" onclick="clearSchedule()">Temizle</button>
+      </footer>
+      <div id="warnBox"></div>
+      <div class="result-wrap">
+        <table class="resultgrid" id="resultTable"></table>
+      </div>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+  </div>
+</div>
+ 
+<div class="toast" id="toast"></div>
+ 
+<script>
+/* ---------- constants ---------- */
+const DAYS = [
+  {key:'mon', label:'Pazartesi'},
+  {key:'tue', label:'Salı'},
+  {key:'wed', label:'Çarşamba'},
+  {key:'thu', label:'Perşembe'},
+  {key:'fri', label:'Cuma'},
+  {key:'sat', label:'Cumartesi'},
+  {key:'sun', label:'Pazar'},
+];
+const SHIFT_CAP = 3; // vardiya başına maksimum kişi
+const DEFAULT_SHIFTS = [
+  {id:'shift1', label:'Shift 1', hours:'09:00–14:00', need:2, max:3, genderReq:null, start:9, end:14},
+  {id:'shift2', label:'Shift 2', hours:'14:00–19:00', need:2, max:3, genderReq:null, start:14, end:19},
+  {id:'shift3', label:'Shift 3', hours:'16:00–21:00', need:1, max:3, genderReq:null, start:16, end:21},
+  {id:'shift4', label:'Shift 4', hours:'19:00–24:00', need:2, max:3, genderReq:'M', start:19, end:24},
+];
+// Müdürün seçebileceği 3 sabit blok — her biri belirli bir shift kategorisine sayılır
+const MGR_OPTIONS = [
+  {key:'off',    label:'Çalışmıyor',              countsAs:null,     hours:null},
+  {key:'block1', label:'09:00–16:00',              countsAs:'shift1', hours:'09:00–16:00'},
+  {key:'block2', label:'14:00–19:00',              countsAs:'shift2', hours:'14:00–19:00'},
+  {key:'block4', label:'16:00–24:00',              countsAs:'shift4', hours:'16:00–24:00'},
+];
+const PREF_CYCLE = ['want','any','no'];
+const PREF_LABEL = {want:'İstiyorum', any:'Fark Etmez', no:'Alamıyorum'};
+// Vardiya türü kategorisi: açılış / ara / kapanış. Bir çalışanın haftalık shift'lerini
+// bu üç kategoriye dengeli dağıtmak için kullanılır (en düşük öncelikli kural).
+const SHIFT_CATEGORY = {shift1:'open', shift2:'mid', shift3:'mid', shift4:'close'};
+ 
+// Müdürün o gün için "gerçekte" geçerli olan seçimi. Temizlik günü açılışın (Shift 1) yerini
+// aldığı için, o gün 09:00–16:00 (block1) seçilmiş olsa bile müdür fiilen gelmiyor sayılır —
+// aksi halde hem müdür Shift 1'e girmez hem de Shift 2'nin kişi sayısı yanlışlıkla düşerdi.
+function getEffectiveMgrChoice(dayKey){
+  const mgrDay = state.manager.days[dayKey];
+  if(!mgrDay || !mgrDay.choice) return 'off';
+  if(state.cleaning.enabled && state.cleaning.day === dayKey && mgrDay.choice === 'block1') return 'off';
+  return mgrDay.choice;
+}
+ 
+// Müdürün o günkü (geçerli) seçimine göre bir shift'in o gün için gerçekte ihtiyaç duyduğu
+// kişi sayısı. 09:00–16:00 (block1) çalışıyorsa Shift 2'nin bir kısmını zaten karşılamış olur
+// -> gerekli kişi 1'e düşer. 16:00–24:00 (block4) çalışıyorsa Shift 3'ü tamamen karşılamış
+// olur -> gerekli kişi 0 olur.
+function getEffectiveNeed(shift, dayKey){
+  const choice = getEffectiveMgrChoice(dayKey);
+  if(shift.id === 'shift2' && choice === 'block1') return 1;
+  if(shift.id === 'shift3' && choice === 'block4') return 0;
+  return shift.need;
+}
+ 
+// İki çalışan birbirinin "çakışan" (aynı anda çalışamaz) listesindeyse ve saatleri kesişen
+// bir vardiyada biri zaten atanmışsa, diğeri o vardiyaya (ya da o saatlerle çakışan başka
+// bir vardiyaya) atanamaz.
+// Temizlik günü, açılışın (Shift 1) yerini alan bir ekip — gerçek bir "shift" değil ama
+// vardiya benzeri davranması (çakışma kontrolü, takas ekranı vb. için) gerekiyor. Bu yüzden
+// Shift 1'in saatlerini miras alan sahte bir shift nesnesi olarak temsil ediyoruz.
+function getCleaningMeta(){
+  const shift1 = state.shifts.find(s=>s.id==='shift1') || {start:9, end:14, hours:'—'};
+  return {id:'cleaning', label:'🧹 Temizlik (Açılış yerine)', hours:shift1.hours, start:shift1.start, end:shift1.end, max:Math.max(state.employees.length,1), genderReq:null};
+}
+function getAllShiftMeta(){
+  return [...state.shifts, getCleaningMeta()];
+}
+function getShiftMeta(shiftId){
+  return shiftId === 'cleaning' ? getCleaningMeta() : state.shifts.find(s=>s.id===shiftId);
+}
+function isCleaningDay(dayKey){
+  return state.cleaning.enabled && state.cleaning.day === dayKey;
+}
+function hasConflict(candidateId, dayKey, shift, schedule){
+  const emp = state.employees.find(e=>e.id===candidateId);
+  const empConflicts = (emp && emp.conflicts) || [];
+  for(const s of getAllShiftMeta()){
+    const overlaps = s.start < shift.end && shift.start < s.end;
+    if(!overlaps) continue;
+    const people = (schedule[dayKey] && schedule[dayKey][s.id]) || [];
+    for(const p of people){
+      if(p.id === candidateId) continue;
+      const other = state.employees.find(e=>e.id===p.id);
+      const otherConflicts = (other && other.conflicts) || [];
+      if(empConflicts.includes(p.id) || otherConflicts.includes(candidateId)) return true;
+    }
+  }
+  return false;
+}
+ 
+/* ---------- state ---------- */
+let state = {
+  employees: [],   // {id,name,gender,prefs:{shift1:{mon:'want',...},...},min,max}
+  manager: {name:'Sen (Müdür)', gender:'M', days:{}}, // days[key] = {choice:'off'|'block1'|'block2'|'block4'}
+  shifts: JSON.parse(JSON.stringify(DEFAULT_SHIFTS)),
+  cleaning: {enabled:false, day:'mon', count:3}, // aktifse, seçilen günde normal vardiya yerine temizlik vardiyası olur
+  schedule: null, // {mon:{shift1:[{id,name,gender,manager}],...}, ...}
+};
+let editingId = null;
+let currentGender = 'M';
+let currentPrefs = {};
+let currentConflicts = [];
+ 
+function newPrefs(){
+  const p = {};
+  DEFAULT_SHIFTS.forEach(s=>{
+    p[s.id] = {};
+    DAYS.forEach(d=> p[s.id][d.key] = 'any');
+  });
+  return p;
+}
+currentPrefs = newPrefs();
+ 
+/* ---------- persistence ---------- */
+async function loadState(){
+  try{
+    const r = await window.storage.get('scheduler-state', false);
+    if(r && r.value){
+      const loaded = JSON.parse(r.value);
+      state = Object.assign(state, loaded);
+      if(!state.shifts || state.shifts.length===0) state.shifts = JSON.parse(JSON.stringify(DEFAULT_SHIFTS));
+    }
+  }catch(e){ /* no saved state yet */ }
+  DAYS.forEach(d=>{
+    const existing = state.manager.days[d.key];
+    if(!existing){
+      state.manager.days[d.key] = {choice:'off'};
+    } else if(existing.choice === undefined){
+      // eski format (active/start/end/countsAs) -> yeni formata çevir
+      if(existing.active && existing.countsAs){
+        const match = MGR_OPTIONS.find(o=>o.countsAs===existing.countsAs);
+        state.manager.days[d.key] = {choice: match ? match.key : 'off'};
+      } else {
+        state.manager.days[d.key] = {choice:'off'};
+      }
+    }
+  });
+  state.manager.gender = 'M';
+  if(!state.cleaning) state.cleaning = {enabled:false, day:'mon', count:3};
+  state.employees.forEach(e=>{ if(!e.conflicts) e.conflicts = []; });
+  renderAll();
+}
+async function persist(){
+  try{
+    await window.storage.set('scheduler-state', JSON.stringify(state), false);
+    flashSave();
+  }catch(e){ console.error('save failed', e); }
+}
+function flashSave(){
+  const el = document.getElementById('saveIndicator');
+  el.textContent = 'kaydedildi ✓';
+  setTimeout(()=>{ el.textContent=''; }, 1500);
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+ 
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+ 
+/* ---------- employee form ---------- */
+function setGender(g){
+  currentGender = g;
+  document.getElementById('genM').classList.toggle('sel-M', g==='M');
+  document.getElementById('genK').classList.toggle('sel-K', g==='K');
+}
+function renderPrefGrid(){
+  const table = document.getElementById('prefGrid');
+  let html = '<tr><th style="text-align:left;">Shift</th>';
+  DAYS.forEach(d=> html += `<th>${d.label.slice(0,3)}</th>`);
+  html += '</tr>';
+  state.shifts.forEach(s=>{
+    html += `<tr><td class="shiftlabel">${s.label}<br><span style="font-weight:400;color:var(--muted);font-size:10.5px;">${s.hours}</span></td>`;
+    DAYS.forEach(d=>{
+      const val = currentPrefs[s.id][d.key];
+      html += `<td><button type="button" class="pref-cell pref-${val}" onclick="cyclePref('${s.id}','${d.key}')">${PREF_LABEL[val]}</button></td>`;
+    });
+    html += '</tr>';
+  });
+  table.innerHTML = html;
+}
+function cyclePref(shiftId, dayKey){
+  const cur = currentPrefs[shiftId][dayKey];
+  const idx = PREF_CYCLE.indexOf(cur);
+  currentPrefs[shiftId][dayKey] = PREF_CYCLE[(idx+1) % PREF_CYCLE.length];
+  renderPrefGrid();
+}
+function renderConflictPicker(){
+  const wrap = document.getElementById('conflictPicker');
+  const others = state.employees.filter(e=> e.id !== editingId);
+  if(others.length===0){
+    wrap.innerHTML = '<span class="hint" style="margin:0;">Henüz başka çalışan yok.</span>';
+    return;
+  }
+  wrap.innerHTML = others.map(e=>{
+    const sel = currentConflicts.includes(e.id);
+    return `<button type="button" class="mgr-opt-btn ${sel?'off-sel':''}" onclick="toggleConflict('${e.id}')">${e.name}</button>`;
+  }).join('');
+}
+function toggleConflict(id){
+  const idx = currentConflicts.indexOf(id);
+  if(idx>=0) currentConflicts.splice(idx,1); else currentConflicts.push(id);
+  renderConflictPicker();
+}
+function resetForm(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'Yeni Çalışan Ekle';
+  document.getElementById('saveEmpBtn').textContent = 'Çalışanı Kaydet';
+  document.getElementById('empName').value = '';
+  document.getElementById('empMin').value = 4;
+  document.getElementById('empMax').value = 4;
+  setGender('M');
+  currentPrefs = newPrefs();
+  currentConflicts = [];
+  renderPrefGrid();
+  renderConflictPicker();
+}
+function saveEmployee(){
+  const name = document.getElementById('empName').value.trim();
+  if(!name){ toast('İsim gerekli'); return; }
+  const min = parseInt(document.getElementById('empMin').value) || 0;
+  const max = parseInt(document.getElementById('empMax').value) || 0;
+  if(max < min){ toast('Maks, min\'den küçük olamaz'); return; }
+  const emp = {
+    id: editingId || ('e'+Date.now()),
+    name, gender: currentGender,
+    prefs: JSON.parse(JSON.stringify(currentPrefs)),
+    conflicts: JSON.parse(JSON.stringify(currentConflicts)),
+    min, max
+  };
+  const idx = state.employees.findIndex(e=>e.id===emp.id);
+  if(idx>=0) state.employees[idx] = emp; else state.employees.push(emp);
+  persist();
+  resetForm();
+  renderEmpList();
+  toast('Çalışan kaydedildi');
+}
+function editEmployee(id){
+  const e = state.employees.find(x=>x.id===id);
+  if(!e) return;
+  editingId = id;
+  document.getElementById('formTitle').textContent = 'Çalışanı Düzenle: ' + e.name;
+  document.getElementById('saveEmpBtn').textContent = 'Güncelle';
+  document.getElementById('empName').value = e.name;
+  document.getElementById('empMin').value = e.min;
+  document.getElementById('empMax').value = e.max;
+  setGender(e.gender);
+  currentPrefs = JSON.parse(JSON.stringify(e.prefs));
+  currentConflicts = JSON.parse(JSON.stringify(e.conflicts || []));
+  renderPrefGrid();
+  renderConflictPicker();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function deleteEmployee(id){
+  state.employees = state.employees.filter(e=>e.id!==id);
+  persist();
+  renderEmpList();
+}
+function renderEmpList(){
+  const list = document.getElementById('empList');
+  document.getElementById('empCount').textContent = state.employees.length;
+  if(state.employees.length===0){
+    list.innerHTML = '<div class="empty">Henüz çalışan eklenmedi.</div>';
+    return;
+  }
+  list.innerHTML = state.employees.map(e=>{
+    const range = e.min===e.max ? `${e.min} shift (net)` : `${e.min}–${e.max} shift`;
+    const conflictNames = (e.conflicts||[]).map(id=>{
+      const other = state.employees.find(x=>x.id===id);
+      return other ? other.name : null;
+    }).filter(Boolean);
+    const conflictMeta = conflictNames.length ? ` · çakışmaz: ${conflictNames.join(', ')}` : '';
+    return `<div class="emp-row">
+      <div class="who">
+        <span class="badge badge-${e.gender}">${e.gender==='M'?'Erkek':'Kız'}</span>
+        <span class="name">${e.name}</span>
+        <span class="meta">· ${range}${conflictMeta}</span>
+      </div>
+      <div class="actions">
+        <button class="btn secondary small" onclick="editEmployee('${e.id}')">Düzenle</button>
+        <button class="btn danger small" onclick="deleteEmployee('${e.id}')">Sil</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+ 
+/* ---------- manager tab ---------- */
+function renderManagerTab(){
+  const wrap = document.getElementById('mgrDays');
+  wrap.innerHTML = DAYS.map(d=>{
+    const md = state.manager.days[d.key];
+    const btns = MGR_OPTIONS.map(o=>{
+      const isSel = md.choice === o.key;
+      const cls = isSel ? (o.key==='off' ? 'off-sel' : 'sel-'+o.key) : '';
+      return `<button type="button" class="mgr-opt-btn ${cls}" onclick="setMgrChoice('${d.key}','${o.key}')">${o.label}</button>`;
+    }).join('');
+    return `<div class="mgr-day">
+      <div class="dayname">${d.label}</div>
+      <div class="mgr-opt-group">${btns}</div>
+    </div>`;
+  }).join('');
+  updateMgrDayCount();
+}
+function setMgrChoice(dayKey, choiceKey){
+  state.manager.days[dayKey].choice = choiceKey;
+  persist();
+  renderManagerTab();
+}
+function updateMgrDayCount(){
+  const n = Object.values(state.manager.days).filter(d=>d.choice!=='off').length;
+  const el = document.getElementById('mgrDayCount');
+  el.textContent = `Seçili çalışma günü: ${n} / 5 önerilir`;
+  el.style.color = n>5 ? 'var(--no)' : 'var(--muted)';
+}
+ 
+/* ---------- rules tab ---------- */
+function renderRulesEditor(){
+  const wrap = document.getElementById('rulesEditor');
+  wrap.innerHTML = state.shifts.map((s,i)=>`
+    <div class="row" style="margin-bottom:14px; align-items:flex-end;">
+      <div style="flex:1.3;">
+        <label>Ad</label>
+        <input type="text" value="${s.label}" onchange="updateRule(${i},'label',this.value)">
+      </div>
+      <div style="flex:1.3;">
+        <label>Saat (görünüm)</label>
+        <input type="text" value="${s.hours}" onchange="updateRule(${i},'hours',this.value)">
+      </div>
+      <div>
+        <label>Gerekli kişi</label>
+        <input type="number" min="0" max="${SHIFT_CAP}" value="${s.need}" onchange="updateRule(${i},'need',Math.min(${SHIFT_CAP}, parseInt(this.value)||0))">
+      </div>
+      <div>
+        <label>Maks. kişi</label>
+        <input type="number" min="1" max="${SHIFT_CAP}" value="${s.max}" onchange="updateRule(${i},'max',Math.min(${SHIFT_CAP}, Math.max(1, parseInt(this.value)||${SHIFT_CAP})))">
+      </div>
+      <div>
+        <label>Cinsiyet şartı</label>
+        <select onchange="updateRule(${i},'genderReq',this.value==='none'?null:this.value)">
+          <option value="none" ${!s.genderReq?'selected':''}>Yok</option>
+          <option value="M" ${s.genderReq==='M'?'selected':''}>En az 1 erkek</option>
+          <option value="K" ${s.genderReq==='K'?'selected':''}>En az 1 kız</option>
+        </select>
+      </div>
+    </div>
+  `).join('');
+}
+function updateRule(i, field, val){
+  state.shifts[i][field] = val;
+}
+function saveRules(){
+  persist();
+  renderPrefGrid();
+  renderManagerTab();
+  toast('Kurallar kaydedildi');
+}
+ 
+/* ---------- temizlik günü ---------- */
+function renderCleaningEditor(){
+  const btn = document.getElementById('cleaningToggleBtn');
+  btn.textContent = state.cleaning.enabled ? 'Aktif ✓' : 'Kapalı';
+  btn.classList.toggle('off-sel', state.cleaning.enabled);
+  const sel = document.getElementById('cleaningDaySelect');
+  sel.innerHTML = DAYS.map(d=>`<option value="${d.key}" ${state.cleaning.day===d.key?'selected':''}>${d.label}</option>`).join('');
+  sel.disabled = !state.cleaning.enabled;
+  const countInput = document.getElementById('cleaningCountInput');
+  countInput.value = state.cleaning.count;
+  countInput.disabled = !state.cleaning.enabled;
+}
+function toggleCleaning(){
+  state.cleaning.enabled = !state.cleaning.enabled;
+  persist();
+  renderCleaningEditor();
+  renderResult();
+}
+function updateCleaningField(field, val){
+  state.cleaning[field] = val;
+  persist();
+  renderCleaningEditor();
+  renderResult();
+}
+ 
+/* ---------- google sheet import ---------- */
+const DAY_HEADER_MAP = {
+  'PAZARTESİ':'mon', 'PAZARTESI':'mon',
+  'SALI':'tue',
+  'ÇARŞAMBA':'wed', 'CARSAMBA':'wed',
+  'PERŞEMBE':'thu', 'PERSEMBE':'thu',
+  'CUMA':'fri',
+  'CUMARTESİ':'sat', 'CUMARTESI':'sat',
+  'PAZAR':'sun',
+};
+function handleSheetUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const {employees, skipped} = parseWorkbook(wb);
+      if(employees.length === 0){
+        toast('Sheette çalışan bulunamadı — format tanınmadı.');
+        return;
+      }
+      state.employees = employees;
+      state.schedule = null;
+      persist();
+      resetForm();
+      renderEmpList();
+      renderResult();
+      const summary = document.getElementById('importSummary');
+      let msg = `✓ ${employees.length} çalışan içe aktarıldı.`;
+      if(skipped.length) msg += ` (${skipped.length} sayfa okunamadı: ${skipped.join(', ')})`;
+      summary.textContent = msg;
+      toast(`${employees.length} çalışan içe aktarıldı`);
+    }catch(err){
+      console.error(err);
+      toast('Dosya okunamadı: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+function parseWorkbook(wb){
+  const employees = [];
+  const skipped = [];
+  wb.SheetNames.forEach(sheetName=>{
+    if(/hafta|plan/i.test(sheetName)) return; // özet sayfasını atla
+    const genderMatch = sheetName.match(/^(Erkek|Kız|Kiz)/i);
+    if(!genderMatch) return; // çalışan sayfası formatına uymuyor
+    const gender = /erkek/i.test(genderMatch[1]) ? 'M' : 'K';
+    let name = sheetName.replace(/^(Erkek|Kız|Kiz)\s*-?\s*/i, '').trim();
+    if(!name) name = sheetName;
+ 
+    const ws = wb.Sheets[sheetName];
+    const grid = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+ 
+    let headerRowIdx = -1;
+    let dayColMap = {};
+    for(let r=0;r<grid.length;r++){
+      const row = grid[r];
+      if(!row) continue;
+      const tempMap = {};
+      let found = 0;
+      row.forEach((cell,c)=>{
+        if(typeof cell === 'string'){
+          const norm = cell.trim().toUpperCase();
+          if(DAY_HEADER_MAP[norm]){ tempMap[DAY_HEADER_MAP[norm]] = c; found++; }
+        }
+      });
+      if(found >= 5){ headerRowIdx = r; dayColMap = tempMap; break; }
+    }
+    if(headerRowIdx === -1){ skipped.push(sheetName); return; }
+ 
+    const prefs = newPrefs();
+    for(let i=0;i<state.shifts.length;i++){
+      const row = grid[headerRowIdx+1+i];
+      if(!row) continue;
+      const shiftId = state.shifts[i].id;
+      Object.keys(dayColMap).forEach(dayKey=>{
+        const val = row[dayColMap[dayKey]];
+        let pref = 'any';
+        if(typeof val === 'string'){
+          const v = val.trim().toLowerCase();
+          if(v.includes('alamı') || v.includes('alamiy')) pref = 'no';
+          else if(v.includes('iste')) pref = 'want';
+        }
+        prefs[shiftId][dayKey] = pref;
+      });
+    }
+ 
+    let desired = null;
+    outer:
+    for(let r=0;r<grid.length;r++){
+      const row = grid[r];
+      if(!row) continue;
+      for(let c=0;c<row.length;c++){
+        const cell = row[c];
+        if(typeof cell === 'string' && /ka[çc]\s*shift/i.test(cell)){
+          const candidates = [row[c+1], (grid[r+1]||[])[c], (grid[r+1]||[])[c+1], (grid[r+2]||[])[c]];
+          for(const cand of candidates){
+            if(typeof cand === 'number'){ desired = cand; break outer; }
+          }
+        }
+      }
+    }
+    if(desired === null) desired = 4;
+ 
+    employees.push({
+      id: 'e'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      name, gender, prefs,
+      conflicts: [],
+      min: desired, max: desired,
+    });
+  });
+  return {employees, skipped};
+}
+ 
+/* ---------- scheduling algorithm ---------- */
+// Öncelik sırası (yüksekten düşüğe):
+// 0) Temizlik günü aktifse, seçilen gün için sadece açılış (Shift 1) planlanmaz — onun yerine
+//    belirlenen sayıda kişi temizlik ekibi olur. Shift 2, 3, 4 o gün de tamamen normal işler.
+// 1) Tüm slotları doldurmak — havuzu en dar (doldurulması en zor) vardiya önce işlenir.
+// 2) Cinsiyet şartı, dinlenme kuralı, günde tek shift, "aynı anda çalışamaz" kısıtı — hepsi sert kural.
+// 3) Aynı havuz içinde "istiyorum" diyenler önceliklidir, sonra hedefin altında kalanlar.
+// 4) En düşük öncelik: bir çalışanın haftalık shift'leri açılış/ara/kapanış arasında dengeli
+//    dağılsın (örn. 3 shift alan biri mümkünse 1 açılış + 1 ara + 1 kapanış alsın). Bu sadece
+//    yukarıdaki kriterler eşitse devreye giren ince bir tercih, hiçbir slotu boş bırakmaz.
+function generateSchedule(){
+  const shifts = state.shifts;
+  const schedule = {};
+  const assignedCount = {}; // empId -> total count this week
+  const categoryCount = {}; // empId -> {open,mid,close} bu hafta kaç kez o türde çalıştı
+  state.employees.forEach(e=>{
+    assignedCount[e.id] = 0;
+    categoryCount[e.id] = {open:0, mid:0, close:0};
+  });
+  const warnings = [];
+  let prevDayMaleShift4 = new Set(); // ids of men who closed (shift4) the previous day
+ 
+  DAYS.forEach(d=>{
+    schedule[d.key] = {};
+    shifts.forEach(s=> schedule[d.key][s.id] = []);
+    schedule[d.key]['cleaning'] = [];
+ 
+    const workedTodayShiftIds = {}; // empId -> shiftId assigned today (max 1/day)
+    const isCleaningDay = state.cleaning.enabled && state.cleaning.day === d.key;
+ 
+    // Temizlik günü: sadece açılış (Shift 1) yerine temizlik ekibi gelir — diğer vardiyalar
+    // (Shift 2, 3, 4) bu günde de tamamen normal şekilde planlanır. Ekip, çalışanın Shift 1
+    // tercihini (istiyorum/farketmez/alamıyorum) referans alır ve dinlenme kuralına uyar.
+    if(isCleaningDay){
+      const need = Math.max(0, state.cleaning.count || 0);
+      let pool = state.employees.filter(e=>
+        e.prefs.shift1[d.key] !== 'no' &&
+        !(e.gender==='M' && prevDayMaleShift4.has(e.id))
+      );
+      pool.sort((a,b)=>{
+        const prefA = a.prefs.shift1[d.key]==='want' ? 0 : 1;
+        const prefB = b.prefs.shift1[d.key]==='want' ? 0 : 1;
+        if(prefA !== prefB) return prefA - prefB; // "istiyorum" diyenler önce
+        const underA = assignedCount[a.id] < a.max ? 0 : 1;
+        const underB = assignedCount[b.id] < b.max ? 0 : 1;
+        if(underA !== underB) return underA - underB; // hedefinin altındakiler önce
+        const urgA = a.min - assignedCount[a.id];
+        const urgB = b.min - assignedCount[b.id];
+        if(urgA !== urgB) return urgB - urgA; // hedefine en uzak olan önce
+        return assignedCount[a.id] - assignedCount[b.id]; // adil dağılım
+      });
+      const picks = [];
+      for(const cand of pool){
+        if(picks.length >= need) break;
+        const candConflicts = cand.conflicts || [];
+        const conflictsWithPick = picks.some(pk=>{
+          const pkConflicts = pk.conflicts || [];
+          return candConflicts.includes(pk.id) || pkConflicts.includes(cand.id);
+        });
+        if(conflictsWithPick) continue; // aynı anda çalışamayacağı biri zaten seçilmiş
+        picks.push(cand);
+      }
+      picks.forEach(p=>{
+        schedule[d.key]['cleaning'].push({id:p.id, name:p.name, gender:p.gender, manager:false});
+        assignedCount[p.id]++;
+        workedTodayShiftIds[p.id] = 'cleaning'; // günde tek shift kuralı temizlik için de geçerli
+      });
+      if(picks.length < need){
+        warnings.push(`${d.label} – Temizlik: sadece ${picks.length}/${need} kişi bulunabildi.`);
+      }
+    }
+ 
+    const mgrDay = state.manager.days[d.key];
+    let mgrShiftObj = null;
+    const effectiveMgrChoice = getEffectiveMgrChoice(d.key);
+    if(effectiveMgrChoice !== 'off'){
+      const opt = MGR_OPTIONS.find(o=>o.key===effectiveMgrChoice);
+      mgrShiftObj = opt ? shifts.find(s=>s.id===opt.countsAs) : null;
+      if(mgrShiftObj){
+        schedule[d.key][mgrShiftObj.id].push({id:'manager', name:state.manager.name, gender:state.manager.gender, manager:true, hours:opt.hours});
+        workedTodayShiftIds['manager'] = mgrShiftObj.id;
+        if(mgrShiftObj.id === 'shift1' && state.manager.gender==='M' && prevDayMaleShift4.has('manager')){
+          warnings.push(`${d.label}: sen bir önceki gün Shift 4 kapanışını yaptın, aynı hafta içinde ertesi gün Shift 1 seçtin — dinlenme kuralına dikkat.`);
+        }
+      }
+    } else if(mgrDay && mgrDay.choice === 'block1' && isCleaningDay){
+      warnings.push(`${d.label}: bugün temizlik günü olduğu için açılış (Shift 1) yok — 09:00–16:00 seçimin uygulanmadı.`);
+    }
+ 
+    const baseEligible = (e, shift)=>{
+      if(e.prefs[shift.id][d.key] === 'no') return false;
+      if(workedTodayShiftIds[e.id] !== undefined) return false; // günde tek shift
+      if(shift.id === 'shift1' && e.gender==='M' && prevDayMaleShift4.has(e.id)) return false; // dinlenme kuralı
+      if(hasConflict(e.id, d.key, shift, schedule)) return false; // aynı anda çalışamayacağı biri zaten atanmış
+      return true;
+    };
+ 
+    // bugün doldurulması gereken vardiyalar (temizlik günüyse Shift 1 hariç, müdür etkisiyle
+    // güncellenmiş "gerekli kişi" sayısıyla)
+    let pending = shifts
+      .filter(s=> !(isCleaningDay && s.id === 'shift1'))
+      .map(s=>{
+        const need = getEffectiveNeed(s, d.key);
+        const already = schedule[d.key][s.id].length;
+        return {shift:s, remaining: need - already};
+      }).filter(x=> x.remaining > 0);
+ 
+    while(pending.length > 0){
+      // her turda havuzları yeniden hesapla: bir önceki atama, başka vardiyaların havuzunu daraltmış olabilir
+      pending.forEach(item=>{
+        item.pool = state.employees.filter(e=> baseEligible(e, item.shift));
+      });
+      // en dar havuza sahip (en kısıtlı / doldurulması en zor) vardiyayı önce işle
+      pending.sort((a,b)=> a.pool.length - b.pool.length);
+      const current = pending[0];
+ 
+      if(current.pool.length === 0){
+        warnings.push(`${d.label} – ${current.shift.label}: uygun kimse kalmadı, ${current.remaining} kişilik eksik var.`);
+        pending.shift();
+        continue;
+      }
+ 
+      let pool = current.pool.slice();
+      const cat = SHIFT_CATEGORY[current.shift.id];
+      pool.sort((a,b)=>{
+        const prefA = a.prefs[current.shift.id][d.key]==='want' ? 0 : 1;
+        const prefB = b.prefs[current.shift.id][d.key]==='want' ? 0 : 1;
+        if(prefA !== prefB) return prefA - prefB; // "istiyorum" diyenler aynı havuzda öne alınır
+        const underA = assignedCount[a.id] < a.max ? 0 : 1;
+        const underB = assignedCount[b.id] < b.max ? 0 : 1;
+        if(underA !== underB) return underA - underB; // hedefinin altındakiler önce
+        const urgA = a.min - assignedCount[a.id];
+        const urgB = b.min - assignedCount[b.id];
+        if(urgA !== urgB) return urgB - urgA; // hedefine en uzak olan önce
+        const catA = categoryCount[a.id][cat];
+        const catB = categoryCount[b.id][cat];
+        if(catA !== catB) return catA - catB; // açılış/ara/kapanış dengesi: bu türü daha az almış olan önce
+        return assignedCount[a.id] - assignedCount[b.id];
+      });
+ 
+      // cinsiyet şartı varsa ve havuzda uygun biri varsa, önce o alınsın
+      const already = schedule[d.key][current.shift.id];
+      if(current.shift.genderReq && !already.some(p=>p.gender===current.shift.genderReq)){
+        const idx = pool.findIndex(c=>c.gender===current.shift.genderReq);
+        if(idx > 0){ const [pick] = pool.splice(idx,1); pool.unshift(pick); }
+      }
+ 
+      // aynı vardiyaya aynı anda birden fazla kişi alınabildiği için (need>1), pool'daki
+      // adayları teker teker seçip her adımda seçilenlerle çakışmayı da kontrol et —
+      // yoksa aynı turda seçilen iki kişi birbiriyle çakışan biri olabilir.
+      const picks = [];
+      for(const cand of pool){
+        if(picks.length >= current.remaining) break;
+        const candConflicts = cand.conflicts || [];
+        const conflictsWithPick = picks.some(pk=>{
+          const pkConflicts = pk.conflicts || [];
+          return candConflicts.includes(pk.id) || pkConflicts.includes(cand.id);
+        });
+        if(conflictsWithPick) continue;
+        picks.push(cand);
+      }
+      picks.forEach(p=>{
+        schedule[d.key][current.shift.id].push({id:p.id, name:p.name, gender:p.gender, manager:false});
+        assignedCount[p.id]++;
+        categoryCount[p.id][cat]++;
+        workedTodayShiftIds[p.id] = current.shift.id;
+      });
+      current.remaining -= picks.length;
+ 
+      const effectiveNeed = getEffectiveNeed(current.shift, d.key);
+      const finalHasGender = (g)=> schedule[d.key][current.shift.id].some(p=>p.gender===g);
+      if(current.remaining > 0){
+        warnings.push(`${d.label} – ${current.shift.label}: sadece ${schedule[d.key][current.shift.id].length}/${effectiveNeed} kişi bulunabildi.`);
+      } else if(current.shift.genderReq && effectiveNeed > 0 && !finalHasGender(current.shift.genderReq)){
+        warnings.push(`${d.label} – ${current.shift.label}: cinsiyet şartı (en az 1 ${current.shift.genderReq==='M'?'erkek':'kız'}) karşılanamadı.`);
+      }
+ 
+      pending.shift(); // bu vardiya bu gün için işlendi
+    }
+ 
+    // bir sonraki gün için: bugün shift4'te çalışan erkekleri işaretle
+    const nextSet = new Set();
+    (schedule[d.key]['shift4']||[]).forEach(p=>{
+      if(p.gender==='M') nextSet.add(p.id);
+    });
+    prevDayMaleShift4 = nextSet;
+  });
+ 
+  state.employees.forEach(e=>{
+    if(assignedCount[e.id] < e.min){
+      warnings.push(`${e.name}: hedeflenen ${e.min===e.max? e.min+' shift' : e.min+'–'+e.max+' shift'} yerine yalnızca ${assignedCount[e.id]} shift alabildi.`);
+    }
+  });
+ 
+  state.schedule = schedule;
+  state.lastAssignedCount = assignedCount;
+  persist();
+  renderResult();
+  renderWarnings(warnings);
+}
+function clearSchedule(){
+  state.schedule = null;
+  persist();
+  renderResult();
+  document.getElementById('warnBox').innerHTML = '';
+}
+function startNewWeek(){
+  const ok = confirm('Yeni haftaya geçmek istediğine emin misin?\n\nBu, oluşturulan programı ve müdür programındaki gün seçimlerini temizler. Çalışan listesi ve kurallar (ör. temizlik günü ayarı) etkilenmez — yeni haftanın Google Sheet dosyasını ayrıca yükleyebilirsin.');
+  if(!ok) return;
+  state.schedule = null;
+  state.lastAssignedCount = null;
+  DAYS.forEach(d=> state.manager.days[d.key] = {choice:'off'});
+  persist();
+  renderManagerTab();
+  renderResult();
+  document.getElementById('warnBox').innerHTML = '';
+  toast('Yeni hafta için temizlendi');
+}
+function renderWarnings(warnings){
+  const box = document.getElementById('warnBox');
+  if(warnings.length===0){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="warn-box"><strong>⚠️ ${warnings.length} uyarı</strong><ul>${warnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`;
+}
+ 
+/* ---------- result rendering + manual edit ---------- */
+function renderResult(){
+  const table = document.getElementById('resultTable');
+  const summary = document.getElementById('summaryGrid');
+  if(!state.schedule){
+    table.innerHTML = '';
+    summary.innerHTML = '<div class="empty">Henüz program oluşturulmadı. "Programı Oluştur" butonuna bas.</div>';
+    return;
+  }
+  let html = '<tr><th style="text-align:left;">Shift</th>';
+  DAYS.forEach(d=> html += `<th>${d.label}</th>`);
+  html += '</tr>';
+ 
+  state.shifts.forEach(s=>{
+    html += `<tr class="cell-shift${s.id.slice(-1)}"><td class="rowlabel">${s.label}<br><span style="font-weight:400;">${s.hours}</span>${s.genderReq?`<br><span style="font-weight:400;">min 1 ${s.genderReq==='M'?'erkek':'kız'}</span>`:''}</td>`;
+    DAYS.forEach(d=>{
+      if(s.id === 'shift1' && isCleaningDay(d.key)){
+        html += `<td><div class="cell-empty">🧹 bugün açılış yerine temizlik var</div></td>`;
+        return;
+      }
+      const people = state.schedule[d.key][s.id] || [];
+      let cellHtml = '';
+      if(people.length===0){
+        cellHtml += '<div class="cell-empty">boş</div>';
+      } else {
+        people.forEach(p=>{
+          const genderClass = p.gender==='M' ? 'male' : 'female';
+          const title = p.manager && p.hours ? ` title="${p.hours}"` : '';
+          cellHtml += `<span class="name-chip ${genderClass} ${p.manager?'mgr':''}"${title} onclick="openSwap('${d.key}','${s.id}','${p.id}')">${p.name}</span>`;
+        });
+      }
+      if(people.length < s.max){
+        cellHtml += `<div class="add-slot" onclick="openSwap('${d.key}','${s.id}',null)">+ ekle</div>`;
+      } else {
+        cellHtml += `<div class="cell-empty">maks ${s.max} kişi dolu</div>`;
+      }
+      html += `<td>${cellHtml}</td>`;
+    });
+    html += '</tr>';
+  });
+ 
+  if(state.cleaning.enabled){
+    const meta = getCleaningMeta();
+    html += `<tr><td class="rowlabel" style="background:var(--accent-soft); color:var(--accent);">${meta.label}<br><span style="font-weight:400;">gerekli: ${state.cleaning.count} kişi</span></td>`;
+    DAYS.forEach(d=>{
+      if(!isCleaningDay(d.key)){
+        html += `<td><div class="cell-empty">—</div></td>`;
+        return;
+      }
+      const people = state.schedule[d.key]['cleaning'] || [];
+      let cellHtml = '';
+      if(people.length===0){
+        cellHtml += '<div class="cell-empty">boş</div>';
+      } else {
+        people.forEach(p=>{
+          const genderClass = p.gender==='M' ? 'male' : 'female';
+          cellHtml += `<span class="name-chip ${genderClass}" onclick="openSwap('${d.key}','cleaning','${p.id}')">${p.name}</span>`;
+        });
+      }
+      cellHtml += `<div class="add-slot" onclick="openSwap('${d.key}','cleaning',null)">+ ekle</div>`;
+      html += `<td>${cellHtml}</td>`;
+    });
+    html += '</tr>';
+  }
+ 
+  table.innerHTML = html;
+ 
+  const counts = state.lastAssignedCount || {};
+  summary.innerHTML = state.employees.map(e=>{
+    const c = counts[e.id] || 0;
+    let cls = 'ok';
+    if(c < e.min) cls = 'under';
+    else if(c > e.max) cls = 'over';
+    const target = e.min===e.max ? `${e.min} shift` : `${e.min}–${e.max} shift`;
+    return `<div class="sum-card ${cls}">
+      <div class="name">${e.name}</div>
+      <div class="stat">${c} / ${target} atandı</div>
+    </div>`;
+  }).join('');
+}
+ 
+let swapCtx = null;
+function openSwap(dayKey, shiftId, removeEmpId){
+  swapCtx = {dayKey, shiftId};
+  const shift = getShiftMeta(shiftId);
+  const day = DAYS.find(d=>d.key===dayKey);
+  if(!state.schedule[dayKey][shiftId]) state.schedule[dayKey][shiftId] = []; // eski kayıtlarda 'cleaning' anahtarı olmayabilir
+  const already = state.schedule[dayKey][shiftId].map(p=>p.id);
+ 
+  // eğer bir kişi değiştiriliyorsa (removeEmpId), o kişiyi geçici olarak vardiyadan çıkarıp
+  // çakışma kontrolünü ona göre yap — böylece "ile değiştir" doğru sonuç verir.
+  const scheduleForCheck = removeEmpId
+    ? {...state.schedule, [dayKey]:{...state.schedule[dayKey], [shiftId]: state.schedule[dayKey][shiftId].filter(p=>p.id!==removeEmpId)}}
+    : state.schedule;
+ 
+  let optionsHtml = '';
+  let skippedForConflict = 0;
+  state.employees.forEach(e=>{
+    if(already.includes(e.id) && e.id!==removeEmpId) return;
+    if(hasConflict(e.id, dayKey, shift, scheduleForCheck)){ skippedForConflict++; return; }
+    const label = `${e.name} (${e.gender==='M'?'E':'K'})`;
+    optionsHtml += `<button class="modal-opt" onclick="applySwap('${e.id}', '${e.name.replace(/'/g,"\\'")}', '${e.gender}', ${removeEmpId?`'${removeEmpId}'`:'null'})">${label}</button>`;
+  });
+  if(!optionsHtml){
+    optionsHtml = skippedForConflict > 0
+      ? '<p style="font-size:12.5px;color:var(--muted);">Kalan herkes bu saatte zaten planlı biriyle çakışıyor.</p>'
+      : '<p style="font-size:12.5px;color:var(--muted);">Uygun başka çalışan yok.</p>';
+  }
+ 
+  let removeHtml = '';
+  if(removeEmpId){
+    removeHtml = `<button class="modal-opt remove" onclick="applyRemove('${removeEmpId}')">Bu kişiyi kaldır</button>`;
+  }
+ 
+  const modalHtml = `<div class="modal-backdrop" id="swapModal" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3>${day.label} · ${shift.label}${removeEmpId? ' — değiştir' : ' — ekle'}</h3>
+      ${removeHtml}
+      ${optionsHtml}
+      <button class="btn secondary small" style="width:100%;margin-top:8px;" onclick="closeModal()">Vazgeç</button>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+function closeModal(){
+  const m = document.getElementById('swapModal');
+  if(m) m.remove();
+}
+function applySwap(empId, empName, empGender, removeEmpId){
+  const {dayKey, shiftId} = swapCtx;
+  if(removeEmpId){
+    state.schedule[dayKey][shiftId] = state.schedule[dayKey][shiftId].filter(p=>p.id!==removeEmpId);
+  }
+  state.schedule[dayKey][shiftId].push({id:empId, name:empName, gender:empGender, manager:false});
+  recomputeCounts();
+  persist();
+  renderResult();
+  closeModal();
+}
+function applyRemove(empId){
+  const {dayKey, shiftId} = swapCtx;
+  state.schedule[dayKey][shiftId] = state.schedule[dayKey][shiftId].filter(p=>p.id!==empId);
+  recomputeCounts();
+  persist();
+  renderResult();
+  closeModal();
+}
+function recomputeCounts(){
+  const counts = {};
+  state.employees.forEach(e=> counts[e.id]=0);
+  DAYS.forEach(d=>{
+    getAllShiftMeta().forEach(s=>{
+      (state.schedule[d.key][s.id]||[]).forEach(p=>{
+        if(!p.manager) counts[p.id] = (counts[p.id]||0)+1;
+      });
+    });
+  });
+  state.lastAssignedCount = counts;
+}
+ 
+/* ---------- init ---------- */
+function renderAll(){
+  resetForm();
+  renderEmpList();
+  renderManagerTab();
+  renderRulesEditor();
+  renderCleaningEditor();
+  renderResult();
+}
+loadState();
+</script>
+</body>
+</html>
